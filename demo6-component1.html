@@ -65,6 +65,7 @@
     #alert_box{
         width:100%;height:100%;display: flex;position:fixed;top:0;lrft:0;
         z-index: 20;background: rgba(0,0,0,0.7);
+        display: none;
     }
     .alert_con{
         width:200px;
@@ -103,16 +104,7 @@
         <!--列表组件-->
         <my-list :user-data="userData"></my-list>
         <!--弹窗组件-->
-        <div id="alert_box">
-            <div class="alert_con">
-                <div class="alert_title">呼叫</div>
-                <div class="alert_tel">18435105873</div>
-                <div class="option_btn">
-                    <button>确定</button>
-                    <button>取消</button>
-                </div>
-            </div>
-        </div>
+        <my-alert></my-alert>
     </div>
 </body>
 </html>
@@ -186,11 +178,11 @@
     })
     Vue.component('my-list',{
         template:`<div id="list">
-                        <ul class="list_con" ref="userList">
+                        <ul class="list_con" ref="userList" @touchmove="move=false">
                             <li v-for="item in userData">
                                 <p>{{item.index}}</p>
                                 <ul>
-                                    <li v-for="user in item.user">{{user.name}}</li>
+                                    <li @touchend="showAlert(user.tel)" :tel="user.tel" v-for="user in item.user">{{user.name}}</li>
                                 </ul>
                             </li>
                         </ul>
@@ -205,6 +197,11 @@
                     return [];
                 }
             }
+        },
+        data:function(){
+             return {
+                 move : false
+             }
         },
         computed:{
             userIndex:function(){
@@ -225,18 +222,66 @@
             },
             setScroll:function(e){
                 var vp=this.$refs.userList.getElementsByTagName('p');
+                //console.log(document.documentElement.scrollTop)
                 for(var i=0;i<vp.length;i++){
                     if(vp[i].innerHTML==e.target.innerHTML){
-                        document.body.scrollTop=vp[i].offsetTop;
+                       var scrollTop = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop;            
+                       document.documentElement.scrollTop=vp[i].offsetTop;
                     }
                 }
-
+            },
+            showAlert:function(tel){
+                if(this.move){
+                    vm.$emit('changeEvent',tel);
+                    //document.getElementById('alert_box').style.display='block';
+                    //document.getElementById('alert_box').style.display='flex';
+                    //console.log(e)
+                }else{
+                    this.move=true;
+                }
             }
         },
         mounted: function(){
                 this.getIndexHeight()
             }
     })
+    Vue.component('my-alert',{
+        template:`
+                     <div id="alert_box" ref="alert">
+                        <div class="alert_con">
+                            <div class="alert_title">呼叫</div>
+                            <div class="alert_tel">{{custumBody}}</div>
+                            <div class="option_btn">
+                                <button>确定</button>
+                                <button @touchend="hideAlertBox">取消</button>
+                            </div>
+                        </div>
+                    </div>`,
+        methods:{
+            hideAlertBox:function(){
+                this.$refs.alert.style.display='none';
+            }
+        },
+        props:{
+            'custumTitle':{
+                type:String,
+                default:'弹窗'
+            }
+        },
+        data:function(){
+            return {
+                'custumBody':''
+            }
+        },
+        mounted:function(){     
+            vm.$on('changeEvent',function(tel){
+                this.custumBody=tel;
+                this.$refs.alert.style.display='flex'
+                //console.log(tel)
+            }.bind(this))//绑定this，不然this的指向为vue实例
+        }
+    })
+    var vm= new Vue();
     new Vue({
         el:'#app',
         methods:{
